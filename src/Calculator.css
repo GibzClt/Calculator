@@ -1,0 +1,13 @@
+#Calculator{
+  height : 60%;
+  width: 25%;
+  background : black;
+  display : flex;
+  flex-direction: column;
+  padding : 0.5%;
+}
+
+#display{
+  flex-basis: 30%;
+  color : white;
+}
