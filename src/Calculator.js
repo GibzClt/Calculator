@@ -14,61 +14,64 @@ const initialState = {
 }
 
 function calculate(value){
-  if(value.indexOf("+") !== -1){
-    return calculate(value.substring(0, value.indexOf("+"))) + calculate(value.substring(value.indexOf("+")+1))
+  let cleanRegex = /(?<=-?\d+)[+\-x/]([+\-x/]*[+x/])/g;
+  let divRegex = /(-?\d+\.\d+|-?\d+)\/(-?\d+\.\d+|-?\d+)/;
+  let mulRegex = /(-?\d+\.\d+|-?\d+)x(-?\d+\.\d+|-?\d+)/;
+  let subRegex = /(-?\d+\.\d+|-?\d+)-(-?\d+\.\d+|-?\d+)/;
+  let addRegex = /(-?\d+\.\d+|-?\d+)\+(-?\d+\.\d+|-?\d+)/;
+  
+  value = value.replace(cleanRegex, (_, $1)=>{
+    return $1[$1.length-1];
+  });
+
+  while(divRegex.test(value)){
+    value = value.replace(divRegex, (_, $1, $2)=>{
+      return parseFloat($1)/parseFloat($2);
+    })
   }
-  if(value.indexOf("-") !== -1){
-    return calculate(value.substring(0, value.indexOf("-"))) - calculate(value.substring(value.indexOf("-")+1))
+  while(mulRegex.test(value)){
+    value = value.replace(mulRegex, (_, $1, $2)=>{
+      return parseFloat($1)*parseFloat($2);
+    })
   }
-  if(value.indexOf("x") !== -1){
-    return calculate(value.substring(0, value.indexOf("x"))) * calculate(value.substring(value.indexOf("x")+1))
+  while(subRegex.test(value)){
+    value = value.replace(subRegex, (_, $1, $2)=>{
+      return parseFloat($1)-parseFloat($2);
+    })
   }
-  if(value.indexOf("/") !== -1){
-    return calculate(value.substring(0, value.indexOf("/"))) / calculate(value.substring(value.indexOf("/")+1))
+  while(addRegex.test(value)){
+    value = value.replace(addRegex, (_, $1, $2)=>{
+      return parseFloat($1)+parseFloat($2);
+    })
   }
-  if(parseFloat(value) !== NaN){
-    return parseFloat(value);
-  }
-  // return parseFloat(value);
+  return value;
 }
 
 function sanitize(value){
-  let arr = value.trim().split("");
-  console.log("arr " , arr)
-  let valArr = [];
-  let regex = /[+\-x/]/;
-  let temp = "";
-  for(let i = 0; i < arr.length; i++){
-    debugger;
-    if(regex.test(arr[i])){
-      valArr.push(temp);
-      valArr.push(arr[i])
-      temp = ""
-      continue;
-    }
-    temp+=arr[i];
-  }
-  valArr.push(temp);
-  console.log("valArr " , valArr)
-
-  let finalArr = [];
-  for(let i = 0; i < valArr.length-1; i++){
-    debugger;
-    if(regex.test(valArr[i]) && regex.test(valArr[i+1])){
-      if(valArr[i+1] !== "-" && valArr[i+1] !== "+"){
-        finalArr.push(valArr[i]);
-        i++;
+  let opRegex = /^[+\-x/]$/;
+  let decCount = 0;
+  let arr = value.split("");
+  let newArr = arr.filter(item=>{
+    if(item==="."){
+      decCount++;
+      if(decCount >1){
+        return false;
       }
+    }else if(opRegex.test(item)){
+      decCount = 0;
     }
-    finalArr.push(valArr[i]);
-  }
-  console.log(finalArr)
-  return finalArr.join("");
+    return true;
+  })
+
+  let newStr = newArr.join("");
+  let zeroRegex = /(?<=[+\-x/])0(0+)(?=\d)|^0(0+)/g;
+  newStr = newStr.replace(zeroRegex, '0');
+  return newStr;
 }
 
 const reducer = (state = initialState, action)=>{
   switch(action.type){
-    case ADD_VALUE : return {value : state.value + action.value};
+    case ADD_VALUE : return {value : sanitize(state.value + action.value)};
     case CLEAR : return {value : action.value};
     case CALCULATE : return {value : calculate(state.value)};
     default : return state;
